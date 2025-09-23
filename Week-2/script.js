@@ -1,4 +1,3 @@
-
 // Initialize the application when the window loads
 window.onload = async function() {
     try {
@@ -73,22 +72,32 @@ function getRecommendations() {
             try {
                 // Step 3: Prepare for similarity calculation
                 const likedGenres = new Set(likedMovie.genres);
+                const allGenres = new Set(movies.flatMap(movie => movie.genres));
+                const genreList = Array.from(allGenres);
+
+                const likedVector = genreList.map(genre => likedGenres.has(genre) ? 1 : 0);
+                
                 const candidateMovies = movies.filter(movie => movie.id !== likedMovie.id);
                 
-                // Step 4: Calculate Jaccard similarity scores
+                // Step 4: Calculate Cosine similarity scores
                 const scoredMovies = candidateMovies.map(candidate => {
                     const candidateGenres = new Set(candidate.genres);
+                    const candidateVector = genreList.map(genre => candidateGenres.has(genre) ? 1 : 0);
                     
-                    // Calculate intersection
-                    const intersection = new Set(
-                        [...likedGenres].filter(genre => candidateGenres.has(genre))
-                    );
+                    let dotProduct = 0;
+                    let magnitudeA = 0;
+                    let magnitudeB = 0;
+
+                    for (let i = 0; i < genreList.length; i++) {
+                        dotProduct += likedVector[i] * candidateVector[i];
+                        magnitudeA += likedVector[i] * likedVector[i];
+                        magnitudeB += candidateVector[i] * candidateVector[i];
+                    }
                     
-                    // Calculate union
-                    const union = new Set([...likedGenres, ...candidateGenres]);
-                    
-                    // Calculate Jaccard similarity
-                    const score = union.size > 0 ? intersection.size / union.size : 0;
+                    // Calculate Cosine similarity
+                    const score = (magnitudeA > 0 && magnitudeB > 0) 
+                        ? dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB)) 
+                        : 0;
                     
                     return {
                         ...candidate,
