@@ -4,26 +4,393 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content-Based Movie Recommender</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(to right, #2c3e50, #4a6491);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(to right, #fdbb2d, #b21f1f);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .select-container {
+            position: relative;
+        }
+
+        .select-container i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4a6491;
+            z-index: 1;
+        }
+
+        #movie-select {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            background-color: white;
+            appearance: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        #movie-select:focus {
+            outline: none;
+            border-color: #4a6491;
+            box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.2);
+        }
+
+        .select-container::after {
+            content: '\f078';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4a6491;
+            pointer-events: none;
+        }
+
+        #recommend-btn {
+            background: linear-gradient(to right, #fd746c, #ff9068);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(253, 116, 108, 0.4);
+        }
+
+        #recommend-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 116, 108, 0.6);
+        }
+
+        #recommend-btn:active {
+            transform: translateY(0);
+        }
+
+        #result-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s;
+        }
+
+        #result-box.loading {
+            background: #e9ecef;
+        }
+
+        #result {
+            text-align: center;
+            color: #6c757d;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .movie-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .movie-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .movie-poster {
+            height: 200px;
+            background: linear-gradient(to right, #2c3e50, #4a6491);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 4rem;
+        }
+
+        .movie-info {
+            padding: 15px;
+        }
+
+        .movie-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .movie-year {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .movie-genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .genre-tag {
+            background: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #495057;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .movie-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>Content-Based Movie Recommender</h1>
-        <p>Select a movie you like, and we'll find similar ones for you!</p>
-        
-        <div class="controls">
-            <select id="movie-select">
-                <option value="" disabled selected>Select a movie</option>
-            </select>
-            <button id="recommend-btn" onclick="getRecommendations()">Get Recommendations</button>
+        <div class="header">
+            <h1><i class="fas fa-film"></i> Movie Recommender</h1>
+            <p>Select a movie you like, and we'll find similar ones for you!</p>
         </div>
         
-        <div id="result-box">
-            <p id="result">Please wait, loading data...</p>
+        <div class="content">
+            <div class="controls">
+                <div class="select-container">
+                    <i class="fas fa-search"></i>
+                    <select id="movie-select">
+                        <option value="" disabled selected>Select a movie</option>
+                    </select>
+                </div>
+                <button id="recommend-btn" onclick="getRecommendations()">
+                    <i class="fas fa-magic"></i> Get Recommendations
+                </button>
+            </div>
+            
+            <div id="result-box">
+                <p id="result">Please wait, loading data...</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Powered by Content-Based Filtering</p>
         </div>
     </div>
 
-    <script src="data.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Sample movie data
+        const movies = [
+            { id: 1, title: "The Shawshank Redemption", year: 1994, genres: ["Drama"] },
+            { id: 2, title: "The Godfather", year: 1972, genres: ["Crime", "Drama"] },
+            { id: 3, title: "The Dark Knight", year: 2008, genres: ["Action", "Crime", "Drama"] },
+            { id: 4, title: "Pulp Fiction", year: 1994, genres: ["Crime", "Drama"] },
+            { id: 5, title: "Forrest Gump", year: 1994, genres: ["Drama", "Romance"] },
+            { id: 6, title: "Inception", year: 2010, genres: ["Action", "Adventure", "Sci-Fi"] },
+            { id: 7, title: "The Matrix", year: 1999, genres: ["Action", "Sci-Fi"] },
+            { id: 8, title: "Goodfellas", year: 1990, genres: ["Biography", "Crime", "Drama"] },
+            { id: 9, title: "The Silence of the Lambs", year: 1991, genres: ["Crime", "Drama", "Thriller"] },
+            { id: 10, title: "Star Wars: Episode IV", year: 1977, genres: ["Action", "Adventure", "Fantasy"] }
+        ];
+
+        // Populate the movie select dropdown
+        const movieSelect = document.getElementById('movie-select');
+        movies.forEach(movie => {
+            const option = document.createElement('option');
+            option.value = movie.id;
+            option.textContent = `${movie.title} (${movie.year})`;
+            movieSelect.appendChild(option);
+        });
+
+        // Function to get recommendations
+        function getRecommendations() {
+            const selectedMovieId = movieSelect.value;
+            if (!selectedMovieId) {
+                alert("Please select a movie first!");
+                return;
+            }
+
+            const selectedMovie = movies.find(movie => movie.id == selectedMovieId);
+            const resultBox = document.getElementById('result-box');
+            const result = document.getElementById('result');
+            
+            // Show loading state
+            resultBox.classList.add('loading');
+            result.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finding similar movies...';
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Find similar movies based on genres
+                const similarMovies = findSimilarMovies(selectedMovie);
+                
+                // Display results
+                if (similarMovies.length > 0) {
+                    resultBox.classList.remove('loading');
+                    result.innerHTML = `
+                        <div style="width: 100%;">
+                            <h3 style="margin-bottom: 15px; color: #2c3e50;">Movies similar to "${selectedMovie.title}"</h3>
+                            <div class="movie-list">
+                                ${similarMovies.map(movie => `
+                                    <div class="movie-card">
+                                        <div class="movie-poster">
+                                            <i class="fas fa-film"></i>
+                                        </div>
+                                        <div class="movie-info">
+                                            <div class="movie-title">${movie.title}</div>
+                                            <div class="movie-year">${movie.year}</div>
+                                            <div class="movie-genres">
+                                                ${movie.genres.map(genre => `<span class="genre-tag">${genre}</span>`).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = "No similar movies found. Try a different selection.";
+                }
+            }, 1500);
+        }
+
+        // Simple content-based filtering algorithm
+        function findSimilarMovies(selectedMovie) {
+            return movies
+                .filter(movie => movie.id !== selectedMovie.id) // Exclude the selected movie
+                .map(movie => {
+                    // Calculate similarity score based on shared genres
+                    const sharedGenres = movie.genres.filter(genre => 
+                        selectedMovie.genres.includes(genre)
+                    ).length;
+                    
+                    // Also consider year proximity (movies from same decade get bonus)
+                    const yearDiff = Math.abs(movie.year - selectedMovie.year);
+                    const yearScore = yearDiff <= 10 ? 1 : 0.5;
+                    
+                    return {
+                        ...movie,
+                        score: sharedGenres + yearScore
+                    };
+                })
+                .sort((a, b) => b.score - a.score) // Sort by similarity score
+                .slice(0, 4); // Return top 4 recommendations
+        }
+
+        // Update the initial message once data is loaded
+        window.onload = function() {
+            document.getElementById('result').textContent = 'Select a movie and click "Get Recommendations" to see similar movies.';
+        };
+    </script>
 </body>
 </html>
