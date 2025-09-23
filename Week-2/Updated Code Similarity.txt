@@ -1,0 +1,60 @@
+// Step 4: Calculate Cosine similarity scores
+const scoredMovies = candidateMovies.map(candidate => {
+    const candidateGenres = new Set(candidate.genres);
+    const candidateVector = genreList.map(genre => candidateGenres.has(genre) ? 1 : 0);
+    
+    let dotProduct = 0;
+    let magnitudeA = 0;
+    let magnitudeB = 0;
+
+    for (let i = 0; i < genreList.length; i++) {
+        dotProduct += likedVector[i] * candidateVector[i];
+        magnitudeA += likedVector[i] * likedVector[i];
+        magnitudeB += candidateVector[i] * candidateVector[i];
+    }
+    
+    // Calculate Cosine similarity
+    const score = (magnitudeA > 0 && magnitudeB > 0) 
+        ? dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB)) 
+        : 0;
+    
+    return {
+        ...candidate,
+        score: score
+    };
+});
+
+
+This code snippet calculates the Cosine Similarity between the selected movie and every other movie in the database. It works by converting each movie's genres into a numerical vector and then applying the Cosine Similarity formula to those vectors.
+
+Here is a step-by-step breakdown of what the code is doing:
+
+Create a Binary Vector for the Candidate Movie:
+
+const candidateVector = genreList.map(genre => candidateGenres.has(genre) ? 1 : 0);
+
+This line converts the candidate movie's genres into a binary vector. A binary vector is a list of numbers where each position represents a unique genre from the genreList. If the movie has a genre, the value is 1; otherwise, it's 0.
+
+Initialize Variables for Calculation:
+
+let dotProduct = 0;
+
+let magnitudeA = 0;
+
+let magnitudeB = 0;
+
+These variables are initialized to zero to store the values needed for the Cosine Similarity formula. magnitudeA refers to the magnitude of the likedVector and magnitudeB refers to the magnitude of the candidateVector.
+
+Calculate Dot Product and Magnitudes:
+
+The for loop iterates through the elements of the likedVector and candidateVector simultaneously.
+
+dotProduct += likedVector[i] * candidateVector[i]; calculates the dot product, which is the sum of the products of corresponding elements from the two vectors. It essentially counts how many genres both movies have in common, weighted by 1.
+
+magnitudeA += likedVector[i] * likedVector[i]; and magnitudeB += candidateVector[i] * candidateVector[i]; calculate the sum of the squared elements for each vector. The square root of this sum will give you the magnitude (length) of the vector.
+
+Apply the Cosine Similarity Formula:
+
+const score = (magnitudeA > 0 && magnitudeB > 0) ? dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB)) : 0;
+
+This line computes the final Cosine Similarity score. The formula is (dot product) / (magnitudeA * magnitudeB). The score is a value between 0 and 1, where 1 indicates the two genre vectors are identical, and 0 indicates they have no genres in common. The magnitudeA > 0 && magnitudeB > 0 check prevents division by zero if a movie has no genres.
