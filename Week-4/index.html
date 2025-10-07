@@ -1,50 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Two-Tower Movie Recommender</title>
+    <title>TF.js Two-Tower Movie Retrieval Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .controls { margin: 20px 0; }
-        button { padding: 10px 15px; margin: 5px; font-size: 16px; }
-        .status { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
-        .chart-container { margin: 20px 0; }
-        canvas { border: 1px solid #ccc; }
-        .results { margin: 20px 0; }
-        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .side-by-side { display: flex; gap: 20px; }
-        .side-by-side > div { flex: 1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        h1, h3 { color: #007bff; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 20px; }
+        .controls { margin: 20px 0; display: flex; gap: 10px; }
+        button { padding: 12px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; transition: background-color 0.3s ease; }
+        #loadData { background-color: #28a745; color: white; }
+        #train { background-color: #ffc107; color: #333; }
+        #test { background-color: #007bff; color: white; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .status { margin: 15px 0; padding: 15px; background: #e9ecef; border-radius: 5px; font-weight: bold; }
+        .chart-container { margin: 30px 0; border: 1px solid #ddd; border-radius: 5px; padding: 15px; background-color: #fff; }
+        canvas { display: block; background-color: #fafafa; border-radius: 4px; }
+        
+        .side-by-side { display: flex; gap: 20px; margin-top: 20px; }
+        .side-by-side > div { flex: 1; min-width: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+
+        .tips { margin-top: 40px; padding: 20px; background-color: #f0f8ff; border-left: 5px solid #007bff; border-radius: 5px; }
+        .tips h4 { margin-top: 0; color: #007bff; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.13.0/dist/tf.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Two-Tower Movie Recommender</h1>
+        <h1>MovieLens 100K Two-Tower Retrieval Demo</h1>
         
         <div class="controls">
-            <button id="loadData">Load Data</button>
-            <button id="train" disabled>Train</button>
-            <button id="test" disabled>Test</button>
+            <button id="loadData">1. Load Data</button>
+            <button id="train" disabled>2. Train Model (20 Epochs)</button>
+            <button id="test" disabled>3. Test User Recommendations</button>
         </div>
         
         <div id="status" class="status">Ready to load data...</div>
-        
+
         <div class="chart-container">
-            <h3>Training Loss</h3>
+            <h3>Training Loss (In-Batch Softmax)</h3>
             <canvas id="lossChart" width="800" height="300"></canvas>
+            <p>Loss should decrease as training progresses.</p>
         </div>
         
         <div class="chart-container">
-            <h3>Item Embeddings (PCA)</h3>
+            <h3>Item Embeddings 2D Projection (PCA of a Sample)</h3>
             <canvas id="embeddingChart" width="800" height="600"></canvas>
+            <p>Similar movies should cluster together. Hover for title.</p>
         </div>
         
-        <div id="results" class="results"></div>
+        <div id="results" class="results">
+            </div>
+
+        <div class="tips">
+            <h4>Usability Tips & Setup</h4>
+            <ul>
+                <li>**Setup**: Ensure you have a `/data` folder containing `u.data` and `u.item` relative to this `index.html`.</li>
+                <li>**Training Time**: Training on ~80k interactions for 20 epochs (with `embDim=32`) can take 15-40 seconds, depending on your device. The loss chart updates live.</li>
+                <li>**GitHub Pages**: This entire demo is client-side. Simply upload the `index.html`, `app.js`, `two-tower.js`, and the `/data` directory to a GitHub repository and enable GitHub Pages for static hosting.</li>
+            </ul>
+        </div>
     </div>
 
-    <!-- Load TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
     <script src="two-tower.js"></script>
     <script src="app.js"></script>
 </body>
