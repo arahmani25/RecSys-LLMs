@@ -1,60 +1,68 @@
-/* ===========================================================
-   data.js
-   - Loads and parses the MovieLens 100K dataset (u.item & u.data)
-   - Provides movie list, user IDs, and rating data
-   =========================================================== */
+// ------------------------------
+// DATA LOADING AND PARSING LOGIC
+// ------------------------------
 
-let movies = {}; // movieId -> movieTitle
-let ratings = []; // {userId, itemId, rating}
+// URLs to your locally downloaded MovieLens dataset files
+const itemURL = './u.item';
+const ratingURL = './u.data';
+
+// Arrays to hold parsed data
+let movies = [];
+let ratings = [];
 let numUsers = 0;
 let numMovies = 0;
 
-const BASE_URL = "https://files.grouplens.org/datasets/movielens/ml-100k";
-
-/**
- * Load the u.item and u.data files, parse them, and prepare
- * the global variables numUsers, numMovies, movies[], and ratings[].
- */
+// ------------------------------
+// Load both movie and rating data
+// ------------------------------
 async function loadData() {
-  const [itemText, dataText] = await Promise.all([
-    fetch(`${BASE_URL}/u.item`).then(r => r.text()),
-    fetch(`${BASE_URL}/u.data`).then(r => r.text())
-  ]);
+  try {
+    const [itemResponse, ratingResponse] = await Promise.all([
+      fetch(itemURL),
+      fetch(ratingURL)
+    ]);
 
-  parseItemData(itemText);
-  parseRatingData(dataText);
+    if (!itemResponse.ok || !ratingResponse.ok) throw new Error("Failed to fetch");
 
-  // Count unique users and movies
-  const users = new Set(ratings.map(r => r.userId));
-  const items = new Set(ratings.map(r => r.itemId));
-  numUsers = users.size;
-  numMovies = items.size;
+    const itemText = await itemResponse.text();
+    const ratingText = await ratingResponse.text();
 
-  console.log(`Loaded ${numUsers} users, ${numMovies} movies`);
+    parseItemData(itemText);
+    parseRatingData(ratingText);
+
+    numUsers = Math.max(...ratings.map(r => r.userId)) + 1;
+    numMovies = Math.max(...ratings.map(r => r.movieId)) + 1;
+
+    return true;
+  } catch (err) {
+    document.getElementById("result").textContent =
+      "Error loading data or training model: " + err.message;
+    throw err;
+  }
 }
 
-/**
- * Parse the u.item file: "movie id | title | ..."
- */
+// ------------------------------
+// Parse u.item file (Movie info)
+// ------------------------------
 function parseItemData(text) {
-  const lines = text.split("\n");
-  lines.forEach(line => {
-    if (!line.trim()) return;
-    const parts = line.split("|");
-    const id = parseInt(parts[0]);
-    const title = parts[1];
-    movies[id] = title;
+  const lines = text.trim().split('\n');
+  movies = lines.map(line => {
+    const [id, title] = line.split('|');
+    return { id: parseInt(id) - 1, title };
   });
 }
 
-/**
- * Parse the u.data file: "user id \t item id \t rating \t timestamp"
- */
+// ------------------------------
+// Parse u.data file (User ratings)
+// ------------------------------
 function parseRatingData(text) {
-  const lines = text.split("\n");
-  lines.forEach(line => {
-    if (!line.trim()) return;
-    const [userId, itemId, rating] = line.split("\t").map(Number);
-    ratings.push({ userId, itemId, rating });
+  const lines = text.trim().split('\n');
+  ratings = lines.map(line => {
+    const [userId, movieId, rating] = line.split('\t');
+    return {
+      userId: parseInt(userId) - 1,
+      movieId: parseInt(movieId) - 1,
+      rating: parseFloat(rating)
+    };
   });
 }
