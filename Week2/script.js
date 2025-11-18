@@ -1,37 +1,29 @@
-// Initialize the application when the window loads
+// script.js
+
 window.onload = async function() {
+    const resultElement = document.getElementById('result');
     try {
-        // Display loading message
-        const resultElement = document.getElementById('result');
-        resultElement.textContent = "Loading movie data...";
+        resultElement.textContent = "Initializing AI Pipeline & Parsing CSV...";
         resultElement.className = 'loading';
         
-        // Load data
+        // This calls the function in data.js which parses and processes the CSV
         await loadData();
         
-        // Populate dropdown and update status
         populateMoviesDropdown();
-        resultElement.textContent = "Data loaded. Please select a movie.";
+        resultElement.textContent = "Data Ready. Select a movie.";
         resultElement.className = 'success';
     } catch (error) {
-        console.error('Initialization error:', error);
-        // Error message already set in data.js
+        console.error('Init error:', error);
+        resultElement.textContent = "System Error.";
+        resultElement.className = 'error';
     }
 };
 
-// Populate the movies dropdown with sorted movie titles
 function populateMoviesDropdown() {
     const selectElement = document.getElementById('movie-select');
-    
-    // Clear existing options except the first placeholder
-    while (selectElement.options.length > 1) {
-        selectElement.remove(1);
-    }
-    
-    // Sort movies alphabetically by title
+    // Sort alphabetically
     const sortedMovies = [...movies].sort((a, b) => a.title.localeCompare(b.title));
     
-    // Add movies to dropdown
     sortedMovies.forEach(movie => {
         const option = document.createElement('option');
         option.value = movie.id;
@@ -40,85 +32,73 @@ function populateMoviesDropdown() {
     });
 }
 
-// Main recommendation function
+// MATH: Cosine Similarity (The Core of Stage 4)
+function calculateCosineSimilarity(vecA, vecB) {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 function getRecommendations() {
     const resultElement = document.getElementById('result');
+    const selectElement = document.getElementById('movie-select');
+    const selectedId = selectElement.value; 
     
-    try {
-        // Step 1: Get user input
-        const selectElement = document.getElementById('movie-select');
-        const selectedMovieId = parseInt(selectElement.value);
-        
-        if (isNaN(selectedMovieId)) {
-            resultElement.textContent = "Please select a movie first.";
-            resultElement.className = 'error';
-            return;
-        }
-        
-        // Step 2: Find the liked movie
-        const likedMovie = movies.find(movie => movie.id === selectedMovieId);
-        if (!likedMovie) {
-            resultElement.textContent = "Error: Selected movie not found in database.";
-            resultElement.className = 'error';
-            return;
-        }
-        
-        // Show loading message while processing
-        resultElement.textContent = "Calculating recommendations...";
-        resultElement.className = 'loading';
-        
-        // Use setTimeout to allow the UI to update before heavy computation
-        setTimeout(() => {
-            try {
-                // Step 3: Prepare for similarity calculation
-                const likedGenres = new Set(likedMovie.genres);
-                const candidateMovies = movies.filter(movie => movie.id !== likedMovie.id);
-                
-                // Step 4: Calculate Jaccard similarity scores
-                const scoredMovies = candidateMovies.map(candidate => {
-                    const candidateGenres = new Set(candidate.genres);
-                    
-                    // Calculate intersection
-                    const intersection = new Set(
-                        [...likedGenres].filter(genre => candidateGenres.has(genre))
-                    );
-                    
-                    // Calculate union
-                    const union = new Set([...likedGenres, ...candidateGenres]);
-                    
-                    // Calculate Jaccard similarity
-                    const score = union.size > 0 ? intersection.size / union.size : 0;
-                    
-                    return {
-                        ...candidate,
-                        score: score
-                    };
-                });
-                
-                // Step 5: Sort by score in descending order
-                scoredMovies.sort((a, b) => b.score - a.score);
-                
-                // Step 6: Select top recommendations
-                const topRecommendations = scoredMovies.slice(0, 2);
-                
-                // Step 7: Display results
-                if (topRecommendations.length > 0) {
-                    const recommendationTitles = topRecommendations.map(movie => movie.title);
-                    resultElement.textContent = `Because you liked "${likedMovie.title}", we recommend: ${recommendationTitles.join(', ')}`;
-                    resultElement.className = 'success';
-                } else {
-                    resultElement.textContent = `No recommendations found for "${likedMovie.title}".`;
-                    resultElement.className = 'error';
-                }
-            } catch (error) {
-                console.error('Error in recommendation calculation:', error);
-                resultElement.textContent = "An error occurred while calculating recommendations.";
-                resultElement.className = 'error';
-            }
-        }, 100);
-    } catch (error) {
-        console.error('Error in getRecommendations:', error);
-        resultElement.textContent = "An unexpected error occurred.";
+    if (!selectedId) {
+        resultElement.textContent = "Please select a movie first.";
         resultElement.className = 'error';
+        return;
     }
+
+    // Find the source movie
+    const likedMovie = movies.find(movie => movie.id == selectedId);
+
+    if (!likedMovie) {
+        resultElement.textContent = "Error: Movie not found.";
+        return;
+    }
+
+    resultElement.textContent = "Analyzing content vectors...";
+    resultElement.className = 'loading';
+
+    // Use timeout to let UI update before heavy math
+    setTimeout(() => {
+        const candidates = movies.filter(m => m.id != likedMovie.id);
+
+        // Calculate Score
+        const scoredMovies = candidates.map(candidate => {
+            // Compare the vectors created in data.js
+            const score = calculateCosineSimilarity(likedMovie.vector, candidate.vector);
+            return { ...candidate, score: score };
+        });
+
+        // Sort
+        scoredMovies.sort((a, b) => b.score - a.score);
+
+        // Get top 3
+        const topRecs = scoredMovies.slice(0, 3);
+
+        if (topRecs.length > 0 && topRecs[0].score > 0) {
+            // Create a nice output showing the "Why"
+            const recList = topRecs.map(m => {
+                const tags = [...m.features.themes, ...m.features.subgenres].join(', ');
+                return `<li><strong>${m.title}</strong> <br><small>(Matches: ${tags})</small></li>`;
+            }).join('');
+            
+            resultElement.innerHTML = `Because you liked "${likedMovie.title}", we found similar themes:<ul>${recList}</ul>`;
+            resultElement.className = 'success';
+        } else {
+            resultElement.textContent = `No movies with similar themes found.`;
+            resultElement.className = 'error';
+        }
+    }, 50);
 }
